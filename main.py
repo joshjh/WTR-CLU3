@@ -28,6 +28,9 @@ def alw_compare(allow_obj, sp_obj):
         print(bcolors.FAIL + 'found mismatch between allowance DB GYH_T :{} and USR GYH_T {}'.format
         (allow_obj.GYH_T_Mileage_To_Nominated_Address, sp_obj.Perm_GYH_Mileage) + bcolors.ENDC)
 
+    if sp_obj.Temp_GYH_Mileage != '':
+        print(bcolors.WARNING + 'Temp GYH mileage set GYH_T {}, should be in LANDED LOG OR ERROR'.format
+        (sp_obj.Temp_GYH_Mileage) + bcolors.ENDC)
     # if division by 10 gives a remainder, the gyh(t) mileage was not rounded
     try:
         if allow_obj.GYH_T_Mileage_To_Nominated_Address % 10 != 0:
@@ -80,10 +83,10 @@ def alw_compare(allow_obj, sp_obj):
     except ValueError:
         print(bcolors.FAIL + 'annual GYH/HTD check date not set' + bcolors.ENDC)
     if GMAPS:
-        postcode_check(allow_obj, errors)
+        postcode_check(allow_obj)
 
 
-def postcode_check(allow_obj, errors):
+def postcode_check(allow_obj):
     # pull out postcode from the allowance object, then run it through the Python Miles Module against the global postcode
     # PS is postcode pulled from GYH_T_address line in allowance object
     ps = allow_obj.Full_GYH_T_POSTCODE
@@ -101,19 +104,18 @@ def postcode_check(allow_obj, errors):
         except TypeError:  # TypeError is returned when miles.get_mileage drops out on postcode check
             pass
 
-
 def usr_run(SP_object, SP_allow_db):
-    __check_fixed_values__(SP_object, errors)
-    __check_against_ALW__(SP_object, SP_allow_db, errors)
-    __check_acting_local__(SP_object, errors)
-    __check_pscat_sfa__(SP_object, errors)
-    __check_against_accomp_status__(SP_object, errors)
-    __check_gyh_rounding__(SP_object, errors)
+    __check_fixed_values__(SP_object)
+    __check_against_ALW__(SP_object, SP_allow_db)
+    __check_acting_local__(SP_object)
+    __check_pscat_sfa__(SP_object)
+    __check_against_accomp_status__(SP_object)
+    __check_gyh_rounding__(SP_object)
     if WARRANTS:
         __get_warrants__(SP_object)
 
 
-def __check_gyh_rounding__(SP_object, errors):
+def __check_gyh_rounding__(SP_object):
     try:
         if SP_object.Perm_GYH_Mileage % 10 != 0:
             print(bcolors.FAIL + 'incorrect rounding: {} for USR GYH_T mileage'.format
@@ -123,7 +125,7 @@ def __check_gyh_rounding__(SP_object, errors):
         pass
 
 
-def __check_against_accomp_status__(SP_object, errors):
+def __check_against_accomp_status__(SP_object):
     if SP_object.Perm_GYH_Mileage != '' and SP_object.Perm_Accomp_Status not in ('US, VS'):
         print(bcolors.OKBLUE + 'SP {} {} gets GYH T - possibly wrong Accompanied Status {}'.format(SP_object.whois,
                                                                                                    SP_object.Assignment_Number,
@@ -133,9 +135,17 @@ def __check_against_accomp_status__(SP_object, errors):
         print(bcolors.OKBLUE + 'SP {} {} has SFA charge - possibly wrong Accompanied Status {}'.format(SP_object.whois,
                                                                                                        SP_object.Assignment_Number,
                                                                                                        SP_object.Perm_Accomp_Status) + bcolors.ENDC)
+    if SP_object.Marital_Status in ('Category 1', 'Category 1S', 'Category 1C', 'Category 2') and SP_object.Perm_Accomp_Status == 'US':
+        print(bcolors.OKBLUE + 'SP {} {} is PS1 - possibly wrong Accompanied Status {}, maybe VS/A'.format(SP_object.whois,
+                                                                                                       SP_object.Assignment_Number,
+                                                                                                       SP_object.Perm_Accomp_Status) + bcolors.ENDC)
+    if SP_object.Marital_Status in ('Category 3', 'Category 4', 'Category 5') and SP_object.Perm_Accomp_Status != 'US':
+        print(bcolors.OKBLUE + 'SP {} {} is PS3-5 - possibly wrong Accompanied Status {}, maybe US'.format(SP_object.whois,
+                                                                                                       SP_object.Assignment_Number,
+                                                                                                       SP_object.Perm_Accomp_Status) + bcolors.ENDC)
 
 
-def __check_pscat_sfa__(SP_object, errors):
+def __check_pscat_sfa__(SP_object):
     if SP_object.SFA_Occupied != '' and SP_object.Marital_Status in ('Category 5', 'Category 4', 'Category 3'):
         print(bcolors.OKBLUE + 'SP {} {} is PS Cat {} and has MQ Charges'.format(SP_object.whois,
                                                                                  SP_object.Assignment_Number,
@@ -146,14 +156,14 @@ def __check_pscat_sfa__(SP_object, errors):
                                                                               SP_object.Assignment_Number) + bcolors.ENDC)
 
 
-def __check_acting_local__(SP_object, errors):
+def __check_acting_local__(SP_object):
     if SP_object.Acting_Paid_Rank != '':
         print(bcolors.OKBLUE + 'SP {} {} is Acting Local {} and should be in Supervisors Log'.format(SP_object.whois,
                                                                                                      SP_object.Assignment_Number,
                                                                                                      SP_object.Acting_Paid_Rank) + bcolors.ENDC)
 
 
-def __check_fixed_values__(SP_object, errors):
+def __check_fixed_values__(SP_object):
     SP_object_dict = SP_object.__dict__
     if SP_object.whois == ('TRIUMPH', 'OFFICER OF THE DAY|1560669'):
         pass
@@ -246,7 +256,7 @@ def __get_warrants__(sp_object):
         print('has {} warrants to from today'.format(warrants, leave_year_end))
 
 
-def __check_against_ALW__(SP_object, SP_allow_db, errors):
+def __check_against_ALW__(SP_object, SP_allow_db):
     '''
     :param SP_object: service person object
     :return: process of errors against the AP database object
@@ -333,7 +343,6 @@ def main():
                 pass
 
     print('CLU is now {} lines of code'.format(clu_lines))
-    print(len(f_found_files))
 
 if __name__ == '__main__':
     # default to use gmaps where no --nogmaps is given gmaps=True

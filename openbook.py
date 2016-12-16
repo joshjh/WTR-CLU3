@@ -3,6 +3,7 @@ __author__ = 'josh'
 
 import xlrd
 import datetime
+import sys
 
 class SP:
      def __init__(self, last_name, position):
@@ -24,30 +25,36 @@ def openbook(workbook, sheet_type='USR'):
     """
     opens the workbook and creates class SP.  Returns SP with all attributes for each line in the Excel Sheet
     """
-    openedbook = xlrd.open_workbook(workbook)
-    if sheet_type == 'USR':
-        sheet = openedbook.sheet_by_name('Full USR')
-    elif sheet_type == 'ALW':
-        sheet = openedbook.sheet_by_name('HASLER STAFF')
-        sheet2= openedbook.sheet_by_name('MA7 Allowance')
-    elif sheet_type == 'LVE':
-        sheet = openedbook.sheet_by_name('Absence Details')
-        header = sheet.row_values(4)
-    elif sheet_type == 'APR':
-        sheet = openedbook.sheet_by_name('2015')
-    elif sheet_type == 'MT':
-        sheet = openedbook.sheet_by_name('Departures 2015')
-        header = sheet.row_values(1)
-    elif sheet_type == 'OBIEE_GYH_T':
-        sheet = openedbook.sheet_by_name('Sheet1')
-        header = sheet.row_values(2)
-    elif sheet_type == 'TASBAT':
-        sheet = openedbook.sheet_by_name('G46')
-        header = sheet.row_values(0)
-    elif sheet_type == 'TDS':
-        sheet = openedbook.sheet_by_name('TDTS Spreadsheet 2016-17')
-        header = sheet.row_values(0)
-    # if header was not defined above, we will set it to the top line (0)
+    try:
+
+        openedbook = xlrd.open_workbook(workbook)
+        if sheet_type == 'USR':
+            sheet = openedbook.sheet_by_name('Full USR')
+        elif sheet_type == 'ALW':
+            sheet = openedbook.sheet_by_name('HASLER STAFF')
+            sheet2= openedbook.sheet_by_name('MA7 Allowance')
+        elif sheet_type == 'LVE':
+            sheet = openedbook.sheet_by_name('Absence Details')
+            header = sheet.row_values(4)
+        elif sheet_type == 'APR':
+            sheet = openedbook.sheet_by_name('2015')
+        elif sheet_type == 'MT':
+            sheet = openedbook.sheet_by_name('Departures 2015')
+            header = sheet.row_values(1)
+        elif sheet_type == 'OBIEE_GYH_T':
+            sheet = openedbook.sheet_by_name('Sheet1')
+            header = sheet.row_values(2)
+        elif sheet_type == 'TASBAT':
+            sheet = openedbook.sheet_by_name('G46')
+            header = sheet.row_values(0)
+        elif sheet_type == 'TDS':
+            sheet = openedbook.sheet_by_name('TDTS Spreadsheet 2016-17')
+            header = sheet.row_values(0)
+        # if header was not defined above, we will set it to the top line (0)
+    except xlrd.XLRDError:
+        quitstring = 'BAD/CORRUPTED FILE {}, OR FILE OPENED IN EDITOR WHILST PARSING TYPE {}'.format(workbook, sheet_type)
+        #bugout - unrecoverable
+        sys.exit('CONTROLLED STOP. :: ' + quitstring)
     try:
         header
 
@@ -93,12 +100,14 @@ def openbook(workbook, sheet_type='USR'):
             lve_object = SP(lve_dictionary['Full_Name'], lve_dictionary['Employee_Number'])
             lve_object.setvalues(lve_dictionary)
             unit.append(lve_object)
+
     elif sheet_type == 'APR':
         for x in range(1, sheet.nrows):
             apr_dictionary = dict(zip(header, sheet.row_values(x)))
             apr_object = SP(apr_dictionary['Name'], apr_dictionary['Service_Number'])
             apr_object.setvalues(apr_dictionary)
             unit.append(apr_object)
+
     elif sheet_type == 'MT':
         for x in range(2, sheet.nrows):
             mt_dictionary = dict(zip(header, sheet.row_values(x)))
@@ -106,12 +115,14 @@ def openbook(workbook, sheet_type='USR'):
             mt_object = SP(mt_dictionary['Name'], mt_dictionary['Service_No'])
             mt_object.setvalues(mt_dictionary)
             unit.append(mt_object)
+
     elif sheet_type == 'OBIEE_GYH_T':
         for x in range(3, sheet.nrows):
             gyh_t_dictionary = dict(zip(header, sheet.row_values(x)))
             gyh_t_object = SP(gyh_t_dictionary['Surname'], gyh_t_dictionary['Service_Number'])
             gyh_t_object.setvalues(gyh_t_dictionary)
             unit.append(gyh_t_object)
+
     elif sheet_type == 'TASBAT':
         for x in range(1, sheet.nrows):
             tasbat_dictionary = dict(zip(header, sheet.row_values(x)))
@@ -120,6 +131,7 @@ def openbook(workbook, sheet_type='USR'):
             #this is a bit naughty.
             tasbat_object.__setattr__('lineno', x+1)
             unit.append(tasbat_object)
+
     return unit
 
 # maybe depricated, keeping for now, might be useful
